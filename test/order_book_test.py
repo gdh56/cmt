@@ -153,6 +153,69 @@ class OrderBookTest(unittest.TestCase):
             for i, level in enumerate(levels):
                 self.assertEqual(expected_order_book[side][i], level)
 
+    def test_trying_to_understand_order_book(self):
+        mock_seed_book = {'bids': [["1000", "1", "a1b"], ["995", ".5", "b1b"], ["1010", ".4", "c1b"],
+                                   ['1990', '1', '111'], ['1990', '1.77', '222']],
+                          'asks': [["2000", "1", "a1a"], ["2095", ".5", "b1a"], ["2010", ".4", "c1a"]]}
+        order_book = OrderBook(seed_book=mock_seed_book)
+        expected_ids_to_order = {'a1b': Order('buy', "1", "1000"), 'b1b': Order('buy', ".5", "995"),
+                                 'c1b': Order('buy', ".4", "1010"), 'a1a': Order('sell', "1", "2000"),
+                                 'b1a': Order('sell', ".5", "2095"), '111': Order('buy', '1', '1990'),
+                                 '222': Order('buy', '1.77', '1990')}
+        expected_side_level_order = {'buy': {1000: {'a1b'}, 995: {'b1b'}, 1010: {'c1b'}, 1990: {'111', '222'}},
+                                     'sell': {2000: {'a1a'}, 2095: {'b1a'}, 2010: {'c1a'}}}
+        expected_order_book = {'sell': [(2000.0, 1.0), (2010.0, .4), (2095.0, 0.5)],
+                               'buy': [(1990, 2.77), (1010.0, 0.4), (1000.0, 1.0), (995.0, 0.5)]}
+        for order_id, order in expected_ids_to_order.iteritems():
+            self.assertEqual(order_book.id_to_order[order_id].quantity, order.quantity)
+            self.assertEqual(order_book.id_to_order[order_id].price, order.price)
+            self.assertEqual(order_book.id_to_order[order_id].side, order.side)
+        for side, price_to_id in expected_side_level_order.iteritems():
+            for price, id_set in price_to_id.iteritems():
+                self.assertEqual(order_book.side_level_order_ids[side][price], id_set)
+        for side, levels in order_book.last_book.iteritems():
+            for i, level in enumerate(levels):
+                self.assertEqual(expected_order_book[side][i], level)
+        msg = {'type': 'done', 'order_id': '222'}
+        order_book.process_message(msg)
+        expected_ids_to_order = {'a1b': Order('buy', "1", "1000"), 'b1b': Order('buy', ".5", "995"),
+                                 'c1b': Order('buy', ".4", "1010"), 'a1a': Order('sell', "1", "2000"),
+                                 'b1a': Order('sell', ".5", "2095"), '111': Order('buy', '1', '1990')}
+        expected_side_level_order = {'buy': {1000: {'a1b'}, 995: {'b1b'}, 1010: {'c1b'}, 1990: {'111'}},
+                                     'sell': {2000: {'a1a'}, 2095: {'b1a'}, 2010: {'c1a'}}}
+        expected_order_book = {'sell': [(2000.0, 1.0), (2010.0, .4), (2095.0, 0.5)],
+                               'buy': [(1990, 1), (1010.0, 0.4), (1000.0, 1.0), (995.0, 0.5)]}
+        for order_id, order in expected_ids_to_order.iteritems():
+            self.assertEqual(order_book.id_to_order[order_id].quantity, order.quantity)
+            self.assertEqual(order_book.id_to_order[order_id].price, order.price)
+            self.assertEqual(order_book.id_to_order[order_id].side, order.side)
+        for side, price_to_id in expected_side_level_order.iteritems():
+            for price, id_set in price_to_id.iteritems():
+                self.assertEqual(order_book.side_level_order_ids[side][price], id_set)
+        for side, levels in order_book.last_book.iteritems():
+            for i, level in enumerate(levels):
+                self.assertEqual(expected_order_book[side][i], level)
+        msg = {'type': 'match', 'order_id': '111'}
+        order_book.process_message(msg)
+        expected_ids_to_order = {'a1b': Order('buy', "1", "1000"), 'b1b': Order('buy', ".5", "995"),
+                                 'c1b': Order('buy', ".4", "1010"), 'a1a': Order('sell', "1", "2000"),
+                                 'b1a': Order('sell', ".5", "2095")}
+        expected_side_level_order = {'buy': {1000: {'a1b'}, 995: {'b1b'}, 1010: {'c1b'}},
+                                     'sell': {2000: {'a1a'}, 2095: {'b1a'}, 2010: {'c1a'}}}
+        expected_order_book = {'sell': [(2000.0, 1.0), (2010.0, .4), (2095.0, 0.5)],
+                               'buy': [(1010.0, 0.4), (1000.0, 1.0), (995.0, 0.5)]}
+        for order_id, order in expected_ids_to_order.iteritems():
+            self.assertEqual(order_book.id_to_order[order_id].quantity, order.quantity)
+            self.assertEqual(order_book.id_to_order[order_id].price, order.price)
+            self.assertEqual(order_book.id_to_order[order_id].side, order.side)
+        for side, price_to_id in expected_side_level_order.iteritems():
+            for price, id_set in price_to_id.iteritems():
+                self.assertEqual(order_book.side_level_order_ids[side][price], id_set)
+        for side, levels in order_book.last_book.iteritems():
+            for i, level in enumerate(levels):
+                self.assertEqual(expected_order_book[side][i], level)
+
+
     def add_order_to_book(self):
         order_id = 'a1e'
         price = '1000.0'
